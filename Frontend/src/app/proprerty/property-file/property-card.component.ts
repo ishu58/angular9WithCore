@@ -8,7 +8,7 @@ styleUrls :['./property-card.component.css']
 
 export class PropertyCardComponent{
 
-Property:any={
+  Property:any={
   "Id":1,
   "Name":"Ishwar",
   "Type":"House",
