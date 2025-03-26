@@ -1,0 +1,58 @@
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+  - stage: DeployTest
+    displayName: 'Deploy to Test Environment'
+    jobs:
+      - job: Deploy
+        steps:
+          - task: CopyFilesOverSSH@0
+            displayName: 'Deploy to Test'
+            inputs:
+              sshEndpoint: 'MySingleVM'
+              sourceFolder: '$(Build.ArtifactStagingDirectory)'
+              targetFolder: '/var/www/test'
+              overwrite: true
+
+  - stage: DeployStage
+    displayName: 'Deploy to Stage Environment'
+    dependsOn: DeployTest
+    condition: succeeded()
+    jobs:
+      - deployment: StageApproval
+        displayName: 'Wait for Stage Approval'
+        environment: 'Stage'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: CopyFilesOverSSH@0
+                  displayName: 'Deploy to Stage'
+                  inputs:
+                    sshEndpoint: 'MySingleVM'
+                    sourceFolder: '$(Build.ArtifactStagingDirectory)'
+                    targetFolder: '/var/www/stage'
+                    overwrite: true
+
+  - stage: DeployProd
+    displayName: 'Deploy to Prod Environment'
+    dependsOn: DeployStage
+    condition: succeeded()
+    jobs:
+      - deployment: ProdApproval
+        displayName: 'Wait for Prod Approval'
+        environment: 'Production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: CopyFilesOverSSH@0
+                  displayName: 'Deploy to Prod'
+                  inputs:
+                    sshEndpoint: 'MySingleVM'
+                    sourceFolder: '$(Build.ArtifactStagingDirectory)'
+                    targetFolder: '/var/www/prod'
+                    overwrite: true
